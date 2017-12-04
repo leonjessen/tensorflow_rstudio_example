@@ -110,9 +110,13 @@ pep_dat %>% filter(label_chr=='SB') %>% pull(peptide) %>% ggseqlogo()
 
 We are creating a model `f`, where `x` is the peptide and `y` is one of three classes `SB`, `WB` and `NB`, such that `f(x) = y`. Each peptide is encoded using the [BLOSUM62 matrix](https://www.ncbi.nlm.nih.gov/Class/FieldGuide/BLOSUM62.txt), such that each peptide becomes an 'image' matrix with 9 rows and 20 columns.
 
-To feed data into a nueral network we need to encode it as a multi-dimensional array (or "tensor"). in this case we have a 3-D array of ‘total number of peptides’ x ‘length of each peptide (9)’ x ‘number of unique residues (20)’.
+To feed data into a nueral network we need to encode it as a multi-dimensional array (or "tensor"). For this dataset we can do this with the `PepTools::pep_encode()` function, which takes a character vector of peptides and transforms them into a 3D array of ‘total number of peptides’ x ‘length of each peptide (9)’ x ‘number of unique residues (20)’. For example:
 
-Here's how transform the data frame into 3-D arrays of training and test data:
+```{r}
+str(pep_encode(c("LLTDAQRIV", "LLTDAQRIV")))
+```
+
+Here's how we transform the data frame into 3-D arrays of training and test data:
 
 ```{r set_train_and_test}
 x_train = pep_dat %>% filter(data_type == 'train') %>% pull(peptide)   %>% pep_encode
@@ -128,12 +132,13 @@ x_train = array_reshape(x_train, c(nrow(x_train), 9 * 20))
 x_test  = array_reshape(x_test,  c(nrow(x_test), 9 * 20))
 ```
 
-The y data is an integer vector with values ranging from 0 to 2. To prepare this data for training we encode the vectors into binary class matrices using the Keras `to_categorical` function:
+The y data is an integer vector with values ranging from 0 to 2. To prepare this data for training we [one-hot encode](https://www.quora.com/What-is-one-hot-encoding-and-when-is-it-used-in-data-science) the vectors into binary class matrices using the Keras `to_categorical` function:
 
 ```{r set_bin_matrices}
 y_train = to_categorical(y_train, num_classes = 3)
 y_test  = to_categorical(y_test,  num_classes = 3)
 ```
+
 
 ### Defining the Model
 
@@ -148,7 +153,7 @@ model <- keras_model_sequential() %>%
   layer_dense(units  = 3, activation   = 'softmax')
 ```
 
-A dense layer is a standard neural network layer with each input node is connected to an output node. A dropout layer sets a random proportiion of activations from the previous layer to 0, which helps to prevent overfitting.
+A [dense layer](https://keras.rstudio.com/reference/layer_dense.html) is a standard neural network layer with each input node is connected to an output node. A [dropout layer](https://keras.rstudio.com/reference/layer_dropout.html) sets a random proportiion of activations from the previous layer to 0, which helps to prevent overfitting.
 
 The `input_shape` argument to the first layer specifies the shape of the input data (a length 180 numeric vector representing a peptide 'image'). The final layer outputs a length 3 numeric vector (probabilities for each class `SB`, `WB` and `NB`) using a softmax activation function.
 
