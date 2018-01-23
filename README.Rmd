@@ -12,7 +12,7 @@ output:
 knitr::opts_chunk$set(echo = TRUE, eval = TRUE, comment = NA)
 ```
 
-This is a guest post from Leon Eyrich Jessen,  a reseach data scientist in the [Immunoinformatics and Machine Learning Group](http://www.bioinformatics.dtu.dk/english/Research_new/Health-informatics/Immunoinformatics-and-machine-learning) and the [T-cell recognition and cancer group](http://www.vet.dtu.dk/english/research/immunology-and-vaccinology/research/sine-reker-hadrup) at the Technical University of Denmark.
+This is a guest post from Leon Eyrich Jessen, a postdoctoral researcher in the [Immunoinformatics and Machine Learning Group](http://www.bioinformatics.dtu.dk/english/Research_new/Health-informatics/Immunoinformatics-and-machine-learning) and the [T-cell recognition and cancer group](http://www.vet.dtu.dk/english/research/immunology-and-vaccinology/research/sine-reker-hadrup) at the Technical University of Denmark.
 
 ***
 
@@ -27,9 +27,11 @@ This is a guest post from Leon Eyrich Jessen,  a reseach data scientist in the [
 </div>
 
 
-Cancer immunotherapy (Immuno-oncology or Immunooncology) is the use of the immune system to treat cancer. This post describes some applications of deep learning to cancer immunotherapy research, specifically, for the classification of peptides. We believe this is a promising approach because deep learning has already proven invaluble and highly succesful in [modelling the interaction between the sick cell and the peptide](http://www.cbs.dtu.dk/services/NetMHCpan/) (96.5% of natural ligands are identified at a very high specificity 98.5%).
+Cancer immunotherapy (Immuno-oncology or Immunooncology) is a cancer treatment strategy, where the aim is to activate the cancer patient's own immune system to fight the cancer. This post describes some applications of deep learning to cancer immunotherapy research, specifically, for the classification of peptides. Due to the high degree of context dependent interactions, deep learning has already proven invaluble and highly succesful in [modelling the molecular interaction between the Major Histocompability Complex type I (MHCI) and peptides](http://www.cbs.dtu.dk/services/NetMHCpan/) (96.5% of natural peptides are identified at a very high specificity 98.5%).
 
-Some brief background before diving in. Special immune cells (T-cells) patrol the body, looking for cells displaying unexpected peptides. If a displayed peptide is unexpected, the T-cells will terminate the cell. The T-cells have been educated to recognise peptides and ignore peptides which originate from our own body. Adoptive T-cell therapy is a form of cancer immunotherapy that aims to take a sample of a tumour, isolate its T-cells, then grow them in great numbers and reintroduce them into the body. 
+Some brief background before diving in. Special immune cells (T-cells) patrol our body, scanning the cells to check if they are healthy. On the surface of our cells is the MHCI - a highly specialised molecular system, which reflects the health status inside our cells. This is done by displaying small fragments of proteins called peptides. T-cells probe these molecular displays to check if the peptides are from our own body (self) or foreign (non-self) e.g. from a virus infection or cancer. If a displayed peptide is non-self, the T-cells has the power to terminate the cell. Adoptive T-cell therapy is a form of cancer immunotherapy that aims to isolate T-cells, engineer them to recognise the cancer, then grow them in great numbers and reintroduce them into the body to fight the cancer.
+
+For ease of dissemination the cancer biology background, the neural network architecture and training procedure have been simplified.
 
 The aim of this use case is to create a simple deep feed forward artificial neural network to classify whether a given peptide is a 'strong binder' `SB`, 'weak binder' `WB` or 'non-binder' `NB`. This classification determines whether the peptide is presented to the immune system or not.
 
@@ -145,6 +147,7 @@ y_test  = to_categorical(y_test,  num_classes = 3)
 The core data structure of Keras is a model, a way to organize layers. The simplest type of model is the Sequential model, a linear stack of layers. We begin by creating a sequential model and then adding layers using the pipe (`%>%`) operator:
 
 ```{r define_model}
+set.seed(922019)
 model <- keras_model_sequential() %>% 
   layer_dense(units  = 180, activation = 'relu', input_shape = 180) %>% 
   layer_dropout(rate = 0.4) %>% 
@@ -233,7 +236,7 @@ Comparing with a building - if DNA is the blue print of how to construct a build
 
 ### Peptides
 
-A peptide is a small fragment of a protein of length ~5-15 amino acids. In this use case, we will be working with `9-mers`, i.e. peptides made of 9 amino acids. Peptides play a crucial role in the monitoring of sick cells in our body by the human immune system.
+A peptide is a small fragment of a protein of length ~5-15 amino acids. In this use case, we will be working with `9-mers`, i.e. peptides made of 9 amino acids. Peptides play a crucial role in the monitoring of cells in our body by the human immune system.
 
 ### The Human Immune System
 
