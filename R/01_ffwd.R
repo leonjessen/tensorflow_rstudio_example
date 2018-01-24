@@ -14,6 +14,19 @@ library("PepTools")
 pep_file = "https://raw.githubusercontent.com/leonjessen/keras_tensorflow_demo/master/data/ran_peps_netMHCpan40_predicted_A0201_reduced_cleaned_balanced.tsv"
 pep_dat  = read_tsv(file = pep_file)
 
+# Training settings
+# ------------------------------------------------------------------------------
+epochs           = 150
+batch_size       = 50
+validation_split = 0.2
+num_classes      = 3
+img_rows         = 9 
+img_cols         = 20
+img_channels     = 1
+input_shape      = c(img_rows, img_cols, img_channels)
+plot_width       = 10
+plot_height      = 6
+
 # Prepare Data for TensorFlow
 # ------------------------------------------------------------------------------
 
@@ -24,15 +37,18 @@ x_test  = pep_dat %>% filter(data_type == 'test')  %>% pull(peptide)   %>% pep_e
 y_test  = pep_dat %>% filter(data_type == 'test')  %>% pull(label_num) %>% array
 
 # Reshape
-x_train = array_reshape(x_train, c(nrow(x_train), 180))
-x_test  = array_reshape(x_test,  c(nrow(x_test), 180))
-y_train = to_categorical(y_train, y_train %>% table %>% length)
-y_test  = to_categorical(y_test,  y_test  %>% table %>% length)
+x_train = array_reshape(x_train, c(nrow(x_train), input_shape))
+x_test  = array_reshape(x_test,  c(nrow(x_test),  input_shape))
+y_train = to_categorical(y_train, num_classes)
+y_test  = to_categorical(y_test,  num_classes)
 
 # Define the model
 # ------------------------------------------------------------------------------
-set.seed(922019)
+
+# Initialize sequential model
 model = keras_model_sequential() 
+
+# Build architecture
 model %>% 
   layer_dense(units  = 180, activation = 'relu', input_shape = 180) %>% 
   layer_dropout(rate = 0.4) %>% 
@@ -50,7 +66,9 @@ model %>% compile(
 # ------------------------------------------------------------------------------
 history = model %>% fit(
   x_train, y_train, 
-  epochs = 150, batch_size = 50, validation_split = 0.2)
+  epochs           = epochs,
+  batch_size       = batch_size,
+  validation_split = validation_split)
 
 # Training
 # ------------------------------------------------------------------------------
@@ -71,29 +89,37 @@ results = tibble(y_real  = y_real %>% factor,
 
 # Visualise
 # ------------------------------------------------------------------------------
+# Training plot parameters
+title = 'Neural Network Training'
+xlab  = 'Epoch number'
+ylab  = 'Accuracy'
+f_out = 'plots/cnn_01_test_training_over_epochs.png'
 training_dat %>%
   ggplot(aes(x = epoch, y = value, colour = dtype)) +
   geom_line() +
   geom_hline(aes(yintercept = perf$acc, linetype = 'Final performance')) +
-  ggtitle(label = "Neural Network Training") +
-  labs(x = 'Epoch number', y = 'Accuracy', colour = 'Data type') +
+  ggtitle(label = title) +
+  labs(x = xlab, y = ylab, colour = 'Data type') +
   scale_linetype_manual(name = 'Lines', values = 'dashed') +
   scale_color_manual(labels = c('Traning', 'Test'),
                      values = c('tomato','cornflowerblue')) +
   theme_bw()
-ggsave(filename = 'plots/ffwd_01_test_training_over_epochs.png',
-       width = 10, height = 6)
+ggsave(filename = f_out, width = plot_width, height = plot_height)
 
+# Perfomance plot parameters
+title = 'Performance on 10% unseen data - Convolutional Neural Network'
+xlab  = 'Measured (Real class, as predicted by netMHCpan-4.0)'
+ylab  = 'Predicted (Class assigned by Keras/TensorFlow deep CNN)'
+f_out = 'plots/cnn_02_results_3_by_3_confusion_matrix_like.png'
 results %>%
   ggplot(aes(x = y_pred, y = y_real, colour = Correct)) +
   geom_point() +
-  xlab("Measured (Real class, as predicted by netMHCpan-4.0)") +
-  ylab("Predicted (Class assigned by Keras/TensorFlow deep FFWD ANN)") +
-  ggtitle(label    = "Performance on 10% unseen data - FFWD Neural Network",
-          subtitle = paste0("Accuracy = ", acc,"%")) +
+  ggtitle(label = title, subtitle = paste0("Accuracy = ", acc,"%")) +
+  xlab(xlab) +
+  ylab(ylab) +
   scale_color_manual(labels = c('No', 'Yes'),
                      values = c('tomato','cornflowerblue')) +
   geom_jitter() +
   theme_bw()
-ggsave(filename = 'plots/ffwd_02_results_3_by_3_confusion_matrix_like.png',
-       width = 10, height = 6)
+ggsave(filename = f_out, width = plot_width, height = plot_height)
+
