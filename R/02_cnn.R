@@ -6,17 +6,19 @@ rm(list=ls())
 # ------------------------------------------------------------------------------
 library("keras")
 library("tidyverse")
-library("ggseqlogo")
 library("PepTools")
 
 # Load data
 # ------------------------------------------------------------------------------
-pep_file = "https://raw.githubusercontent.com/leonjessen/keras_tensorflow_demo/master/data/ran_peps_netMHCpan40_predicted_A0201_reduced_cleaned_balanced.tsv"
+pep_file = paste0(
+  "https://raw.githubusercontent.com/leonjessen/",
+  "keras_tensorflow_demo/master/data/",
+  "ran_peps_netMHCpan40_predicted_A0201_reduced_cleaned_balanced.tsv")
 pep_dat  = read_tsv(file = pep_file)
 
 # Training settings
 # ------------------------------------------------------------------------------
-epochs           = 30
+epochs           = 100
 batch_size       = 50
 validation_split = 0.2
 num_classes      = 3
@@ -30,11 +32,15 @@ plot_height      = 6
 # Prepare Data for TensorFlow
 # ------------------------------------------------------------------------------
 
-# Set x/y test/train
-x_train = pep_dat %>% filter(data_type == 'train') %>% pull(peptide)   %>% pep_encode
-y_train = pep_dat %>% filter(data_type == 'train') %>% pull(label_num) %>% array
-x_test  = pep_dat %>% filter(data_type == 'test')  %>% pull(peptide)   %>% pep_encode
-y_test  = pep_dat %>% filter(data_type == 'test')  %>% pull(label_num) %>% array
+# Setup training data
+target  = 'train'
+x_train = pep_dat %>% filter(data_type==target) %>% pull(peptide) %>% pep_encode
+y_train = pep_dat %>% filter(data_type==target) %>% pull(label_num) %>% array
+
+# Setup test data
+target = 'test'
+x_test = pep_dat %>% filter(data_type==target) %>% pull(peptide) %>% pep_encode
+y_test = pep_dat %>% filter(data_type==target) %>% pull(label_num) %>% array
 
 # Reshape
 x_train = array_reshape(x_train, c(nrow(x_train), input_shape))
@@ -60,10 +66,11 @@ model %>%
   layer_dropout(rate = 0.3) %>%
   layer_dense(units  = 3, activation   = 'softmax')
 
+# Compile model
 model %>% compile(
   loss      = 'categorical_crossentropy',
-  optimizer = optimizer_rmsprop(),
-  metrics   = c('accuracy')
+  optimizer = 'adam',
+  metrics   = 'accuracy'
 )
 
 # Run model
@@ -93,11 +100,11 @@ results = tibble(y_real  = y_real %>% factor,
 
 # Visualise
 # ------------------------------------------------------------------------------
-# Training plot parameters
-title = 'Neural Network Training'
+# Training plot
+title = 'Neural Network Training - Convolutional Neural Network'
 xlab  = 'Epoch number'
 ylab  = 'Accuracy'
-f_out = 'plots/cnn_01_test_training_over_epochs.png'
+f_out = 'plots/02_cnn_01_test_training_over_epochs.png'
 training_dat %>%
   ggplot(aes(x = epoch, y = value, colour = dtype)) +
   geom_line() +
@@ -110,11 +117,11 @@ training_dat %>%
   theme_bw()
 ggsave(filename = f_out, width = plot_width, height = plot_height)
 
-# Perfomance plot parameters
+# Perfomance plot
 title = 'Performance on 10% unseen data - Convolutional Neural Network'
 xlab  = 'Measured (Real class, as predicted by netMHCpan-4.0)'
 ylab  = 'Predicted (Class assigned by Keras/TensorFlow deep CNN)'
-f_out = 'plots/cnn_02_results_3_by_3_confusion_matrix_like.png'
+f_out = 'plots/02_cnn_02_results_3_by_3_confusion_matrix.png'
 results %>%
   ggplot(aes(x = y_pred, y = y_real, colour = Correct)) +
   geom_point() +
